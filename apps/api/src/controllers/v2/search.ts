@@ -20,6 +20,7 @@ import {
 } from "../../services/logging/log_job";
 import { logger as _logger } from "../../lib/logger";
 import { getErrorHttpResponse, ScrapeJobTimeoutError } from "../../lib/error";
+import { SearchModeUnavailableError } from "../../scraper/scrapeURL/error";
 import { z } from "zod";
 import { CategoryOption, hasCategory } from "../../lib/search-query-builder";
 import { executeSearch } from "../../search/execute";
@@ -891,6 +892,10 @@ async function searchControllerInner(
         error: error.message,
         ...jobIdField,
       });
+    }
+
+    if (error instanceof SearchModeUnavailableError) {
+      res.setHeader("Retry-After", String(error.retryAfterSeconds));
     }
 
     const httpResponse = getErrorHttpResponse(error);

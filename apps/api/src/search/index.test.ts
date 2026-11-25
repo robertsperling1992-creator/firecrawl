@@ -14,7 +14,10 @@ vi.mock("./searxng", () => ({ searxng_search: mocks.searxngSearch }));
 vi.mock("./v2/ddgsearch", () => ({ ddgSearch: mocks.ddgSearch }));
 vi.mock("./v2", () => ({ search: mocks.searchV2 }));
 
-import { UsOnlyUnavailableError } from "../scraper/scrapeURL/error";
+import {
+  SearchModeUnavailableError,
+  UsOnlyUnavailableError,
+} from "../scraper/scrapeURL/error";
 import type { SearchProvider } from "../service";
 import { createService, replaceService } from "../service/service";
 import { search } from "./index";
@@ -183,6 +186,17 @@ describe("legacy search", () => {
         enterprise: ["zdr"],
       }),
     );
+  });
+
+  it("passes a refusal for an unsupported enterprise mode through without the legacy providers", async () => {
+    mocks.config.SEARXNG_ENDPOINT = "http://searxng.test";
+    mocks.searchV2.mockRejectedValue(new SearchModeUnavailableError());
+
+    await expect(
+      search({ query: "example", logger, enterprise: ["anon"] }),
+    ).rejects.toThrow(SearchModeUnavailableError);
+    expect(mocks.searxngSearch).not.toHaveBeenCalled();
+    expect(mocks.ddgSearch).not.toHaveBeenCalled();
   });
 
   it("routes legacy search through custom extension providers by priority without falling back on a non-null response", async () => {

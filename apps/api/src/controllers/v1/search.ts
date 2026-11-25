@@ -54,7 +54,10 @@ import { applyAgentAuthDiscoveryHeader } from "../../lib/agent-auth-discovery";
 import { isUsOnly, usOnlyLocationRefusal } from "../../lib/us-only";
 import { isSelfHosted } from "../../lib/deployment";
 import { teamPlanClass } from "../../lib/team-plan-class";
-import { UsOnlyUnavailableError } from "../../scraper/scrapeURL/error";
+import {
+  SearchModeUnavailableError,
+  UsOnlyUnavailableError,
+} from "../../scraper/scrapeURL/error";
 
 const IMAGE_SEARCH_US_ONLY_MESSAGE =
   "Image search is not available for teams restricted to US-only processing.";
@@ -598,6 +601,15 @@ export async function searchController(
 
     if (error instanceof UsOnlyUnavailableError) {
       return res.status(403).json({
+        success: false,
+        code: error.code,
+        error: error.message,
+      });
+    }
+
+    if (error instanceof SearchModeUnavailableError) {
+      res.setHeader("Retry-After", String(error.retryAfterSeconds));
+      return res.status(error.httpStatus).json({
         success: false,
         code: error.code,
         error: error.message,
